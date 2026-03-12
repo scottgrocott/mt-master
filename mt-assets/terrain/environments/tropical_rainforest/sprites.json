@@ -1,7 +1,7 @@
 {
   "spriteSheets":[
     {
-      "url": "https://scottgrocott.github.io/mt-assets/terrain/environments/tropical_rainforest/veg1.png",
+      "url": "/mt-assets/terrain/environments/tropical_rainforest/veg1.png",
       "class": "veg",
       "layout": "grid",
       "columns": 3,
@@ -18,7 +18,7 @@
       ]
     },
     {
-      "url": "https://scottgrocott.github.io/mt-assets/terrain/environments/tropical_rainforest/trees1.png",
+      "url": "/mt-assets/terrain/environments/tropical_rainforest/trees1.png",
       "class": "tree",
       "layout": "grid",
       "columns": 3,
@@ -35,7 +35,7 @@
       ]
     },
     {
-      "url": "https://scottgrocott.github.io/mt-assets/terrain/environments/tropical_rainforest/trees2.png",
+      "url": "/mt-assets/terrain/environments/tropical_rainforest/trees2.png",
       "class": "tree",
       "layout": "grid",
       "columns": 3,

@@ -1,7 +1,7 @@
 {
   "spriteSheets":[
     {
-      "url": "https://scottgrocott.github.io/mt-assets/terrain/environments/temperate_forest/trees1.png",
+      "url": "/mt-assets/terrain/environments/temperate_forest/trees1.png",
 	  "class":"tree",
       "layout": "grid",
       "columns": 2,
@@ -10,9 +10,7 @@
       "cellHeight": 256,
       "frames":[
         {"id": "tree_r0_c0", "x": 0, "y": 0, "w": 256, "h": 256},
-        {"id": "tree_r0_c1", "x": 256, "y": 0, "w": 256, "h": 256},
-        {"id": "tree_r1_c0", "x": 0, "y": 256, "w": 256, "h": 256},
-        {"id": "tree_r1_c1", "x": 256, "y": 256, "w": 256, "h": 256}
+        {"id": "tree_r0_c1", "x": 256, "y": 0, "w": 256, "h": 256}
       ]
     }
   ]

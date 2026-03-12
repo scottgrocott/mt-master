@@ -1,7 +1,7 @@
 {
   "spriteSheets":[
     {
-      "url": "https://scottgrocott.github.io/mt-assets/terrain/environments/savanna/trees1.png",
+      "url": "/mt-assets/terrain/environments/savanna/trees1.png",
 	  "class":"tree",
       "layout": "grid",
       "columns": 2,
