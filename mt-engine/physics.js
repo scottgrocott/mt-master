@@ -14,10 +14,20 @@ export function safeVec3(v) {
 
 export async function initPhysics() {
   if (_plugin) return _plugin;
-  _hk = await window.HK;
+
+  // Timeout guard — if HK never resolves, fail loudly instead of hanging
+  const hkTimeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('HavokPhysics WASM timed out — check CDN script in index.html')), 8000)
+  );
+  try {
+    _hk = await Promise.race([window.HK, hkTimeout]);
+  } catch(e) {
+    console.error('[physics] Havok init failed:', e.message);
+    throw e;
+  }
+
   _plugin = new BABYLON.HavokPlugin(true, _hk);
   scene.enablePhysics(new BABYLON.Vector3(0, -18, 0), _plugin);
-  // Fixed 1/60 s substep for deterministic simulation
   _plugin.setTimeStep(1 / 60);
   console.log('[physics] Havok world ready');
   return _plugin;

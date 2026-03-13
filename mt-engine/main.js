@@ -13,7 +13,8 @@ import { getConfig, setConfig, ASSETS, resolveUrl } from './config.js';
 import { loadEnvironment, loadSprites, loadSounds, loadMusic } from './environment.js';
 import { buildTerrain, getTerrainY, disposeTerrain, applyTerrainTints } from './terrain/terrainMesh.js';
 import { scanFlatAreas }             from './terrain/terrainBounds.js';
-import { initScatterDepth, clearScatter, scatterProps, getShelterPositions } from './scatter.js';
+// Update the scatter.js import to include our new function
+import { initScatterDepth, clearScatter, scatterProps, getShelterPositions, loadAndPlaceShelters } from './scatter.js';
 import { initAudio }                 from './audio/audio.js';
 import { initSoundscape, initMusic, clearSoundtrack } from './audio/soundtrack.js';
 import { initLook, setLookCamera }   from './look.js';
@@ -21,6 +22,7 @@ import { initInput }                 from './input.js';
 import { initPlayer, clearPlayer }   from './player.js';
 import { initHUD, updateHUD }        from './ui/hud.js';
 import { initMinimap, updateMinimap, clearMinimap } from './minimap.js';
+
 
 // ─── Audio URL cache (set during level build, read after user gesture) ─────────
 let _soundsUrl = null;
@@ -52,6 +54,27 @@ async function boot() {
 
   setStatus('INITIALIZING SKY', 10);
   initSky();
+
+
+  BABYLON.SceneLoader.OnPluginActivatedObservable.add((loader) => {
+    if (loader.name === "gltf") {
+      loader.onMeshLoadedObservable.add((mesh) => {
+        const sun = getSunLight();
+        if (!sun) return;
+
+        if (!scene._shadowGen) {
+          scene._shadowGen = new BABYLON.ShadowGenerator(2048, sun);
+          scene._shadowGen.usePercentageCloserFiltering = true;
+          scene._shadowGen.filteringQuality = BABYLON.ShadowGenerator.QUALITY_HIGH;
+          scene._shadowGen.bias = 0.0005;
+        }
+
+        if (mesh.getTotalVertices && mesh.getTotalVertices() > 0) {
+          scene._shadowGen.addShadowCaster(mesh, true);
+        }
+      });
+    }
+  });
 
   setStatus('SETTING UP CONTROLS', 14);
   initLook(camera, scene);
@@ -96,7 +119,7 @@ async function _buildLevel(cfg) {
   const tc = cfg.terrain || {};
 
   // Pick a random heightmap from the array
-  const hmDefs = tc.heightmaps || [];
+  const hmDefs = tc.heightmaps ||[];
   const hmDef  = hmDefs[Math.floor(Math.random() * hmDefs.length)] || {};
   const hmUrl  = resolveUrl(hmDef.url);
   const envTypes = (hmDef.environment?.types) || null;
@@ -125,6 +148,40 @@ async function _buildLevel(cfg) {
 
   setStatus('SCATTERING PROPS', 65);
   await scatterProps(flatAreas, sheets, shelterCount);
+
+  // --- NEW SHELTER & SHADOW LOGIC ---
+  setStatus('BUILDING SHELTERS', 70);
+  
+  // Fetch the shelter URLs
+  const sheltersRes = await fetch(resolveUrl('/mt-assets/shelters/shelters.json'));
+  const sheltersData = await sheltersRes.json();
+  
+  // Get the sun light to cast shadows
+  const sunLight = getSunLight(); 
+  let shadowGenerator = null;
+  
+  if (sunLight) {
+    // Cover the full terrain (512x512 world units + margin)
+    sunLight.shadowMinZ = 1;
+    sunLight.shadowMaxZ = 900;
+    sunLight.orthoLeft   = -450;
+    sunLight.orthoRight  =  450;
+    sunLight.orthoTop    =  450;
+    sunLight.orthoBottom = -450;
+
+    shadowGenerator = new BABYLON.ShadowGenerator(2048, sunLight);
+    shadowGenerator.usePercentageCloserFiltering = true;
+    shadowGenerator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
+    shadowGenerator.bias = 0.001;
+    shadowGenerator.normalBias = 0.02;
+    shadowGenerator.frustumEdgeFalloff = 0.1;
+
+    const terrain = scene.getMeshByName('terrain');
+    if (terrain) terrain.receiveShadows = true;
+  }
+  
+  // Spawn the physical models
+  await loadAndPlaceShelters(sheltersData.shelters, shadowGenerator);
 
   setStatus('SPAWNING PLAYER', 80);
   // Pick spawn: flat area closest to world center, not corner

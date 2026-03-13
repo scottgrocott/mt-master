@@ -5,6 +5,7 @@ import { scene }            from './core.js';
 import { keys, gamepad }    from './input.js';
 import { getLookYaw }       from './look.js';
 import { getTerrainY }      from './terrain/terrainMesh.js';
+import { getPlugin }        from './physics.js';
 
 let _capsule    = null;
 let _camera     = null;
@@ -61,11 +62,29 @@ function _tick() {
   const len = Math.sqrt(mx * mx + mz * mz);
   if (len > 0) { mx = mx / len * SPEED * dt; mz = mz / len * SPEED * dt; }
 
-  // ── Terrain grounding ─────────────────────────────────────────────────────
-  const pos    = _capsule.position;
-  const gndY   = getTerrainY(pos.x + mx, pos.z + mz);
-  const baseY  = gndY + CAP_H * 0.5;   // capsule centre when standing
-  const onGnd  = pos.y <= baseY + 0.12;
+  // ── Floor detection: terrain OR physics body (shelters, bridges, etc) ────────
+  const pos          = _capsule.position;
+  const terrainFloor = getTerrainY(pos.x + mx, pos.z + mz);
+
+  // Raycast down — only trust it if it lands meaningfully above terrain
+  // (terrain itself is a physics body so we'd always hit it otherwise)
+  let physicsFloor = terrainFloor;
+  const plugin = getPlugin();
+  if (plugin) {
+    try {
+      const rayStart = new BABYLON.Vector3(pos.x + mx, pos.y + 0.5, pos.z + mz);
+      const rayEnd   = new BABYLON.Vector3(pos.x + mx, terrainFloor,  pos.z + mz);
+      const result   = new BABYLON.PhysicsRaycastResult();
+      plugin.raycast(rayStart, rayEnd, result);
+      if (result.hasHit && result.hitPointWorld.y > terrainFloor + 0.3) {
+        physicsFloor = result.hitPointWorld.y;
+      }
+    } catch(e) { /* plugin not ready */ }
+  }
+
+  const gndY  = physicsFloor;
+  const baseY = gndY + CAP_H * 0.5;
+  const onGnd = pos.y <= baseY + 0.12;
 
   if (onGnd) {
     _velY = 0;
